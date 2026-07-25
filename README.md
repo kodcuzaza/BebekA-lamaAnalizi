@@ -1,104 +1,91 @@
-# 🍼 Akıllı Bebek Uyku Yönetimi — Yapay Zeka Destekli Bebek Sesi Analiz Sistemi
+# 🍼 Smart Baby Sleep Management — AI-Powered Baby Cry Analysis System
 
-Bebek ses kayıtlarını analiz ederek **ağlama durumunu** ve olası **ağlama nedenini**
-(açlık, karın ağrısı, yorgunluk, rahatsızlık vb.) tahmin eden, YAMNet tabanlı özellik
-çıkarımı ve TensorFlow ile eğitilmiş çoklu görevli (multi-task) bir yapay zeka modeline
-dayanan karar destek sistemi.
+A decision-support system that analyzes baby audio recordings to predict **whether the baby is crying** and the likely **reason for crying** (hunger, belly pain, tiredness, discomfort, etc.), based on YAMNet-based feature extraction and a multi-task AI model trained with TensorFlow.
 
-Bu proje, Bilecik Şeyh Edebali Üniversitesi İktisadi ve İdari Bilimler Fakültesi
-Yönetim Bilişim Sistemleri Bölümü bitirme çalışması kapsamında geliştirilmiştir.
+This project was developed as part of a graduation project at Bilecik Şeyh Edebali University, Faculty of Economics and Administrative Sciences, Department of Management Information Systems.
 
-## ✨ Özellikler
+## ✨ Features
 
-- **Ağlama tespiti**: Bir ses kaydında ağlama olup olmadığını belirler (%99,92 doğruluk)
-- **Neden tahmini**: Ağlama tespit edildiğinde olası nedeni tahmin eder (%62,35 doğruluk,
-  9 sınıflı bir problemde rastgele tahminin ~%11 olduğu göz önüne alındığında yüksek bir başarı)
-- **Web arayüzü**: Tarayıcıdan `.wav` dosyası yükleyip anlık sonuç alma
-- **REST API**: `POST /analyze` ile programatik erişim
-- **Docker desteği**: Tek komutla ayağa kaldırılabilir servis
-- **Canlı mikrofon testi**: Yerel makinede mikrofon ile gerçek zamanlı deneme (`canli_test.py`)
+- **Cry detection**: Determines whether an audio recording contains crying (99.92% accuracy)
+- **Reason prediction**: When crying is detected, predicts the likely reason (62.35% accuracy — a strong result considering random guessing would be ~11% in this 9-class problem)
+- **Web interface**: Upload a `.wav` file from your browser and get instant results
+- **REST API**: Programmatic access via `POST /analyze`
+- **Docker support**: Spin up the service with a single command
+- **Live microphone test**: Real-time testing with a microphone on your local machine (`canli_test.py`)
 
-## 🧠 Nasıl Çalışır?
+## 🧠 How It Works
 
-1. Ses dosyası 16 kHz mono formata dönüştürülür (Librosa)
-2. Önceden eğitilmiş **YAMNet** modeli ile 1024 boyutlu embedding (özellik vektörü) çıkarılır
-3. Bu embedding, iki çıkışlı (multi-task) bir TensorFlow/Keras modeline verilir:
-   - **cry_output**: Ağlama var mı? (sigmoid, ikili sınıflandırma)
-   - **reason_output**: Ağlamanın olası nedeni nedir? (softmax, 9 sınıf)
-4. Sonuçlar JSON olarak döner ve web arayüzünde çubuk grafiklerle görselleştirilir
+1. The audio file is converted to 16 kHz mono format (Librosa)
+2. A 1024-dimensional embedding (feature vector) is extracted using the pretrained **YAMNet** model
+3. This embedding is fed into a two-output (multi-task) TensorFlow/Keras model:
+   - **cry_output**: Is there crying? (sigmoid, binary classification)
+   - **reason_output**: What is the likely reason for crying? (softmax, 9 classes)
+4. Results are returned as JSON and visualized with bar charts in the web interface
 
-Veri seti yaklaşık 1000 ses kaydından oluşmakta olup `noise` sınıfı Gaussian Noise
-ekleme ve Time Shifting teknikleriyle (bkz. `veri_artir.py`) çoğaltılmıştır. Sınıflar:
-`hungry`, `bellypain`, `tired`, `cold_hot`, `discomfort`, `burping`, `laugh`, `silence`,
-`noise`.
+The dataset consists of approximately 1000 audio recordings, with the `noise` class augmented using Gaussian Noise addition and Time Shifting techniques (see `veri_artir.py`). Classes:
+`hungry`, `bellypain`, `tired`, `cold_hot`, `discomfort`, `burping`, `laugh`, `silence`, `noise`.
 
-> **Not:** Yukarıdaki sıralama sadece okunabilirlik içindir. `ses_isleme.py` çalıştığında
-> `classes.npy` dosyasına yazılan gerçek sınıf sırası, `sklearn.LabelEncoder` tarafından
-> **alfabetik** olarak belirlenir (`bellypain, burping, cold_hot, discomfort, hungry,
-> laugh, noise, silence, tired`). Kodun hiçbir yerinde bu sıra sabit varsayılmaz —
-> `app.py`, `test_et.py` ve `canli_test.py` her zaman `classes.npy` içeriğini okuyarak
-> etiketleri eşler — ama modelin ham çıktısını (`reason_pred`) elle yorumlayacaksanız
-> bu alfabetik sırayı bilmeniz gerekir.
+> **Note:** The ordering above is for readability only. The actual class order written to `classes.npy` when `ses_isleme.py` runs is determined **alphabetically** by `sklearn.LabelEncoder` (`bellypain, burping, cold_hot, discomfort, hungry, laugh, noise, silence, tired`). This order is never hardcoded anywhere in the code — `app.py`, `test_et.py`, and `canli_test.py` always read the contents of `classes.npy` to map labels — but if you plan to manually interpret the model's raw output (`reason_pred`), you'll need to know this alphabetical order.
 
-## 📁 Proje Yapısı
+## 📁 Project Structure
 
 ```
 .
-├── app.py                 # Flask web servisi (ana uygulama)
-├── ses_isleme.py           # Veri ön işleme + model eğitimi
-├── veri_artir.py           # Veri artırma (data augmentation) betiği
-├── canli_test.py           # Mikrofon ile canlı test (yerel kullanım)
-├── test_et.py               # Tek bir .wav dosyasını komut satırından test etme
+├── app.py                 # Flask web service (main application)
+├── ses_isleme.py           # Data preprocessing + model training
+├── veri_artir.py           # Data augmentation script
+├── canli_test.py           # Live microphone testing (local use)
+├── test_et.py               # Test a single .wav file from the command line
 ├── templates/
-│   └── index.html          # Web arayüzü
-├── models/                 # Eğitilmiş model dosyaları buraya konur (repoya dahil değildir)
+│   └── index.html          # Web interface
+├── models/                 # Trained model files go here (not included in the repo)
 ├── requirements.txt
 ├── Dockerfile
 ├── docker-compose.yml
 └── LICENSE
 ```
 
-## 🚀 Kurulum ve Çalıştırma
+## 🚀 Setup and Running
 
-### Seçenek 1 — Docker (önerilen)
+### Option 1 — Docker (recommended)
 
-1. Eğitilmiş model dosyalarını `models/` klasörüne yerleştirin:
+1. Place the trained model files in the `models/` folder:
    - `models/bebek_uyku_modeli.h5`
    - `models/classes.npy`
 
-   (Bu dosyalar `ses_isleme.py` çalıştırılarak üretilir, bkz. [Model Eğitimi](#-model-eğitimi).)
+   (These files are generated by running `ses_isleme.py`, see [Model Training](#-model-training).)
 
-2. Container'ı başlatın:
+2. Start the container:
 
    ```bash
    docker compose up --build
    ```
 
-3. Tarayıcıda açın: [http://localhost:8000](http://localhost:8000)
+3. Open in your browser: [http://localhost:8000](http://localhost:8000)
 
-   Port, `docker-compose.yml` içindeki `ports: "8000:5000"` satırından değiştirilebilir
-   (sol taraf dışarıdan erişilecek port).
+   The port can be changed via the `ports: "8000:5000"` line in `docker-compose.yml`
+   (the left side is the externally accessible port).
 
-### Seçenek 2 — Yerel Python ortamı
+### Option 2 — Local Python environment
 
 ```bash
 python -m venv venv
 source venv/bin/activate    # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Model dosyalarını proje köküne koyun (veya MODEL_YOLU / SINIF_YOLU ile yol belirtin)
+# Place the model files in the project root (or specify a path via MODEL_YOLU / SINIF_YOLU)
 python app.py
 ```
 
 ## 🔌 API
 
-| Endpoint | Açıklama |
+| Endpoint | Description |
 |----------|-------------|
-| `GET /` | Web arayüzü (ses dosyası yükleme) |
-| `POST /analyze` | `file` alanında form-data ile `.wav` dosyası gönderilir, JSON sonuç döner |
-| `GET /health` | Sağlık kontrolü |
+| `GET /` | Web interface (upload audio file) |
+| `POST /analyze` | Send a `.wav` file as form-data in the `file` field, returns a JSON result |
+| `GET /health` | Health check |
 
-Örnek `/analyze` yanıtı:
+Example `/analyze` response:
 
 ```json
 {
@@ -112,12 +99,11 @@ python app.py
 }
 ```
 
-## 🏋️ Model Eğitimi
+## 🏋️ Model Training
 
-Model, repoya dahil edilmemiştir (büyük bir veri seti gerektirir). Kendi veri setinizle
-yeniden eğitmek için:
+The model is not included in the repo (it requires a large dataset). To retrain it with your own dataset:
 
-1. Veri setinizi aşağıdaki klasör yapısında hazırlayın:
+1. Prepare your dataset in the following folder structure:
 
    ```
    dataset/
@@ -132,66 +118,60 @@ yeniden eğitmek için:
    └── noise/*.wav
    ```
 
-2. (İsteğe bağlı) `noise` sınıfını çoğaltmak isterseniz:
+2. (Optional) To augment the `noise` class:
 
    ```bash
    export DATASET_PATH=/path/to/dataset
    python veri_artir.py
    ```
 
-3. Modeli eğitin:
+3. Train the model:
 
    ```bash
    export DATASET_PATH=/path/to/dataset
    python ses_isleme.py
    ```
 
-   Bu işlem sonunda `bebek_uyku_modeli.h5` ve `classes.npy` dosyaları üretilir.
-   Bu dosyaları `models/` klasörüne kopyalayıp web servisini başlatabilirsiniz.
+   This produces `bebek_uyku_modeli.h5` and `classes.npy` files.
+   Copy these files into the `models/` folder to start the web service.
 
-## 📊 Sonuçlar
+## 📊 Results
 
-| Görev | Doğruluk |
+| Task | Accuracy |
 |-------|----------|
-| Ağlama tespiti (`cry_output_accuracy`) | %99,92 |
-| Ağlama nedeni tahmini (`reason_output_accuracy`) | %62,35 |
+| Cry detection (`cry_output_accuracy`) | 99.92% |
+| Cry reason prediction (`reason_output_accuracy`) | 62.35% |
 
-Model 30 epoch boyunca, %80 eğitim / %20 test veri bölünmesiyle eğitilmiştir.
+The model was trained for 30 epochs with an 80% training / 20% test data split.
 
-## ⚠️ Notlar ve Sınırlamalar
+## ⚠️ Notes and Limitations
 
-- `canli_test.py` mikrofon erişimi gerektirdiğinden Docker container'ı içinde çalışmaz;
-  yalnızca yerel makinede kullanılabilir. Web servisi (`app.py`) aynı analizi ses dosyası
-  yükleyerek gerçekleştirir. Bu betiği çalıştırmadan önce, `requirements.txt`'e dahil
-  olmayan `sounddevice` paketini ayrıca kurmanız gerekir: `pip install sounddevice`
-  (macOS/Linux'ta ayrıca PortAudio sistem kütüphanesi gerekebilir).
-- Bu sistem doğrudan tıbbi teşhis koymayı amaçlamaz; ebeveynlere karar destek sağlayan
-  bir ön değerlendirme aracıdır.
+- `canli_test.py` requires microphone access and therefore does not run inside a Docker container; it can only be used on a local machine. The web service (`app.py`) performs the same analysis via file upload. Before running this script, you'll need to separately install the `sounddevice` package, which is not included in `requirements.txt`: `pip install sounddevice`
+  (on macOS/Linux, the PortAudio system library may also be required).
+- This system is not intended for direct medical diagnosis; it is a preliminary assessment tool that provides decision support for parents.
 
-## 🔮 Gelecek Planları
+## 🔮 Future Plans
 
-- Mobil uygulama entegrasyonu
-- IoT cihaz desteği (akıllı bebek monitörleri)
-- Gerçek zamanlı bildirim sistemi
-- Bulut tabanlı veri depolama
-- Uyku takibi ve günlük bakım raporları
+- Mobile app integration
+- IoT device support (smart baby monitors)
+- Real-time notification system
+- Cloud-based data storage
+- Sleep tracking and daily care reports
 
-## 🛠️ Kullanılan Teknolojiler
+## 🛠️ Technologies Used
 
 - **Python**, **TensorFlow** / **TensorFlow Hub** (YAMNet)
-- **Librosa** (ses işleme)
-- **Flask** + **Gunicorn** (web servisi)
+- **Librosa** (audio processing)
+- **Flask** + **Gunicorn** (web service)
 - **Docker** / **Docker Compose**
 
-## 👥 Geliştiriciler
+## 👥 Developers
 
 - Batuhan Göçmen
 - Muhammed Ali Yetimçok
 
-**Danışman:** Dr. Öğr. Üyesi Hüseyin Parmaksız
-Bilecik Şeyh Edebali Üniversitesi — İktisadi ve İdari Bilimler Fakültesi
-Yönetim Bilişim Sistemleri Bölümü, 2026
-
-## 📄 Lisans
+**Advisor:** Asst. Prof. Dr. Hüseyin Parmaksız
+Bilecik Şeyh Edebali University — Faculty of Economics and Administrative Sciences
+Department of Management Information Systems, 2026
 
 Bu proje [MIT Lisansı](LICENSE) ile lisanslanmıştır.
